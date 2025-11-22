@@ -98,8 +98,8 @@ class RAGSystem:
         """Añade documentos al sistema RAG."""
         # Crear splitter para dividir textos largos con mejor contexto
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1500,  # Chunks más grandes para mejor contexto
-            chunk_overlap=300,  # Mayor overlap para no perder información entre chunks
+            chunk_size=2000,  # Chunks aún más grandes para capturar artículos completos
+            chunk_overlap=400,  # Mayor overlap para no perder información entre chunks
             length_function=len,
             separators=["\n\n", "\n", ". ", " ", ""]  # Priorizar separadores naturales
         )
@@ -201,17 +201,25 @@ class RAGSystem:
             else:
                 answer_parts.append("📄 **Según el documento legal:**\n\n")
             
-            # Mostrar los fragmentos más relevantes de forma clara
-            for i, source in enumerate(relevant_sources[:3], 1):
-                content = source['content'].strip()
-                # Resaltar las palabras clave encontradas
-                content_preview = self._create_smart_preview(content, keywords)
-                
-                answer_parts.append(f"**Fragmento {i}** (Relevancia: {source['keyword_score']} términos clave):\n{content_preview}\n\n")
+            # Agrupar y mostrar los fragmentos más relevantes
+            if is_requirements or is_list:
+                # Para requisitos/listas, intentar combinar fragmentos relacionados
+                combined_content = self._combine_related_fragments(relevant_sources[:5], keywords)
+                answer_parts.append(combined_content)
+            else:
+                # Para otras preguntas, mostrar fragmentos individuales
+                for i, source in enumerate(relevant_sources[:3], 1):
+                    content = source['content'].strip()
+                    content_preview = self._create_smart_preview(content, keywords)
+                    
+                    relevance_text = f"{int(source['keyword_score'])} palabras clave"
+                    answer_parts.append(f"**Fragmento {i}** ({relevance_text}):\n\n{content_preview}\n\n---\n\n")
             
             # Agregar contexto adicional
-            if len(relevant_sources) > 3:
-                answer_parts.append(f"_Se encontraron {len(relevant_sources)} fragmentos relevantes adicionales._\n")
+            if len(relevant_sources) > 5:
+                answer_parts.append(f"\n_💡 Se encontraron {len(relevant_sources)} fragmentos relevantes en total._\n")
+            elif len(relevant_sources) > 3:
+                answer_parts.append(f"\n_Se encontraron {len(relevant_sources)} fragmentos relacionados._\n")
             
             answer = "".join(answer_parts)
         else:
@@ -269,32 +277,122 @@ class RAGSystem:
         return scored_docs
     
     def _create_smart_preview(self, content: str, keywords: List[str]) -> str:
-        """Crea un preview inteligente mostrando el contexto alrededor de las keywords."""
+        """Crea un preview inteligente mostrando el contexto completo y relevante."""
         content_lower = content.lower()
         
-        # Buscar la primera keyword encontrada
-        best_position = -1
+        # Buscar todas las posiciones de keywords
+        keyword_positions = []
         for kw in keywords:
-            pos = content_lower.find(kw.lower())
-            if pos != -1:
-                best_position = pos
-                break
+            pos = 0
+            while True:
+                pos = content_lower.find(kw.lower(), pos)
+                if pos == -1:
+                    break
+                keyword_positions.append(pos)
+                pos += 1
         
-        if best_position == -1:
-            # Si no hay keywords, mostrar desde el inicio
-            return content[:700] + ("..." if len(content) > 700 else "")
+        if not keyword_positions:
+            # Si no hay keywords, mostrar inicio completo sin truncar tanto
+            return self._format_content(content[:1500])
         
-        # Mostrar contexto alrededor de la keyword (350 chars antes y después)
-        start = max(0, best_position - 200)
-        end = min(len(content), best_position + 500)
+        # Encontrar la posición más temprana de keywords
+        best_position = min(keyword_positions)
         
-        preview = content[start:end]
-        if start > 0:
-            preview = "..." + preview
-        if end < len(content):
-            preview = preview + "..."
+        # Buscar el inicio del párrafo o sección más cercano
+        start = content.rfind('\n\n', 0, best_position)
+        if start == -1:
+            # Si no hay doble salto, buscar salto simple
+            start = content.rfind('\n', 0, best_position)
+            if start == -1:
+                start = max(0, best_position - 150)
         
-        return preview
+        # Mostrar desde el inicio encontrado hasta el final del chunk
+        preview = content[start:].strip()
+        
+        # Solo truncar si es realmente muy largo (más de 1800 chars)
+        if len(preview) > 1800:
+            # Buscar un punto de corte natural (punto final) después de 1500 chars
+            cut_point = preview.find('. ', 1500)
+            if cut_point != -1 and cut_point < 2000:
+                preview = preview[:cut_point + 1]
+            else:
+                # Si no encuentra punto, buscar salto de línea
+                cut_point = preview.find('\n', 1500)
+                if cut_point != -1 and cut_point < 2000:
+                    preview = preview[:cut_point]
+                else:
+                    preview = preview[:1800] + "..."
+        
+        return self._format_content(preview)
+    
+    def _format_content(self, text: str) -> str:
+        """Formatea el contenido para mejor legibilidad."""
+        import re
+        
+        # Primero limpiar espacios múltiples pero preservar saltos de línea importantes
+        lines = text.split('\n')
+        cleaned_lines = [' '.join(line.split()) for line in lines]
+        text = ' '.join(cleaned_lines)
+        
+        # Agregar saltos de línea después de patrones específicos
+        
+        # Para artículos legales (Artículo 123.)
+        text = re.sub(r'(Artículo\s+\d+[a-z]?\.)', r'\n\n\1', text, flags=re.IGNORECASE)
+        
+        # Para parágrafo (Parágrafo.)
+        text = re.sub(r'(Parágrafo\s*\d*\.)', r'\n\n\1', text, flags=re.IGNORECASE)
+        
+        # Para enumeraciones con números seguidos de punto o paréntesis
+        text = re.sub(r'\.\s+(\d+[.)])\s+', r'.\n\n\1 ', text)
+        
+        # Para enumeraciones con letras (a), b), c))
+        text = re.sub(r'\.\s+([a-z][.)])\s+', r'.\n\n\1 ', text)
+        
+        # Para requisitos o items con guion o bullet
+        text = re.sub(r'\.\s+([-•])\s+', r'.\n\n\1 ', text)
+        
+        # Para secciones (CAPITULO, TITULO, etc)
+        text = re.sub(r'(CAPITULO\s+[IVXLCDM]+)', r'\n\n\1', text, flags=re.IGNORECASE)
+        text = re.sub(r'(TITULO\s+[IVXLCDM]+)', r'\n\n\1', text, flags=re.IGNORECASE)
+        
+        # Limpiar espacios al inicio de líneas nuevas
+        text = re.sub(r'\n\s+', r'\n', text)
+        
+        # Limpiar múltiples saltos de línea (máximo 2)
+        text = re.sub(r'\n{3,}', r'\n\n', text)
+        
+        return text.strip()
+    
+    def _combine_related_fragments(self, sources: List[dict], keywords: List[str]) -> str:
+        """Combina múltiples fragmentos relacionados en una respuesta cohesiva."""
+        combined_parts = []
+        seen_content = set()
+        
+        for i, source in enumerate(sources, 1):
+            content = source['content'].strip()
+            
+            # Evitar duplicados (comparar primeros 200 chars)
+            content_signature = content[:200]
+            if content_signature in seen_content:
+                continue
+            seen_content.add(content_signature)
+            
+            # Crear preview inteligente
+            preview = self._create_smart_preview(content, keywords)
+            
+            # Detectar si contiene lista/enumeración
+            has_enumeration = any(pattern in preview for pattern in ['1.', '2.', 'a)', 'b)', '•', '-'])
+            
+            relevance_text = f"{int(source['keyword_score'])} palabras clave"
+            
+            if has_enumeration:
+                # Formato especial para listas
+                combined_parts.append(f"**Sección {i}** ({relevance_text}):\n\n{preview}\n\n---\n")
+            else:
+                # Formato normal
+                combined_parts.append(f"**Fragmento {i}** ({relevance_text}):\n\n{preview}\n\n---\n")
+        
+        return "\n".join(combined_parts)
     
     def _calculate_confidence(self, sources: List[dict]) -> str:
         """Calcula el nivel de confianza basado en la cantidad y calidad de fuentes."""

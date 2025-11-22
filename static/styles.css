@@ -247,11 +247,13 @@ body {
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
-    line-height: 1.6;
+    line-height: 1.8;
+    max-width: 90%;
 }
 
 .message-assistant .message-bubble p {
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
+    text-align: justify;
 }
 
 .message-assistant .message-bubble p:last-child {
@@ -260,6 +262,13 @@ body {
 
 .message-assistant .message-bubble strong {
     color: var(--primary-color);
+    font-size: 1.05em;
+}
+
+.message-assistant .message-bubble hr {
+    margin: 15px 0;
+    border: none;
+    border-top: 1px solid #e0e0e0;
 }
 
 .message-sources {

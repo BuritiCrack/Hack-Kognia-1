@@ -226,6 +226,7 @@ function addMessage(text, sender, sources = null, confidence = null) {
     // Convertir markdown básico a HTML
     let formattedText = text
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // Bold
+        .replace(/---/g, '<hr style="margin: 10px 0; border: none; border-top: 1px solid #e0e0e0;">')  // Separadores
         .replace(/\n\n/g, '</p><p>')  // Párrafos
         .replace(/\n/g, '<br>');  // Saltos de línea
     
