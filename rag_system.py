@@ -203,9 +203,17 @@ class RAGSystem:
             
             # Agrupar y mostrar los fragmentos más relevantes
             if is_requirements or is_list:
-                # Para requisitos/listas, intentar combinar fragmentos relacionados
-                combined_content = self._combine_related_fragments(relevant_sources[:5], keywords)
-                answer_parts.append(combined_content)
+                # Para requisitos/listas, mostrar SOLO el fragmento más relevante
+                best_source = relevant_sources[0]  # El primero es el más relevante (ya está ordenado)
+                content = best_source['content'].strip()
+                content_preview = self._create_smart_preview(content, keywords)
+                
+                relevance_text = f"{int(best_source['keyword_score'])} palabras clave"
+                answer_parts.append(f"**Información más relevante** ({relevance_text}):\n\n{content_preview}\n\n")
+                
+                # Mencionar si hay más información disponible
+                if len(relevant_sources) > 1:
+                    answer_parts.append(f"_💡 Nota: Se encontraron {len(relevant_sources)} fragmentos relacionados. Mostrando el más relevante._\n")
             else:
                 # Para otras preguntas, mostrar fragmentos individuales
                 for i, source in enumerate(relevant_sources[:3], 1):
@@ -215,11 +223,12 @@ class RAGSystem:
                     relevance_text = f"{int(source['keyword_score'])} palabras clave"
                     answer_parts.append(f"**Fragmento {i}** ({relevance_text}):\n\n{content_preview}\n\n---\n\n")
             
-            # Agregar contexto adicional
-            if len(relevant_sources) > 5:
-                answer_parts.append(f"\n_💡 Se encontraron {len(relevant_sources)} fragmentos relevantes en total._\n")
-            elif len(relevant_sources) > 3:
-                answer_parts.append(f"\n_Se encontraron {len(relevant_sources)} fragmentos relacionados._\n")
+            # Agregar contexto adicional solo para preguntas que no sean requisitos/listas
+            if not (is_requirements or is_list):
+                if len(relevant_sources) > 5:
+                    answer_parts.append(f"\n_💡 Se encontraron {len(relevant_sources)} fragmentos relevantes en total._\n")
+                elif len(relevant_sources) > 3:
+                    answer_parts.append(f"\n_Se encontraron {len(relevant_sources)} fragmentos relacionados._\n")
             
             answer = "".join(answer_parts)
         else:
