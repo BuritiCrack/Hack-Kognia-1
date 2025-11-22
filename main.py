@@ -151,7 +151,7 @@ async def query_documents(request: QueryRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
     
-    if rag_system.qa_chain is None:
+    if rag_system.vector_store is None:
         raise HTTPException(
             status_code=400,
             detail="No hay documentos cargados. Por favor, cargue documentos primero."
@@ -192,7 +192,7 @@ async def get_status():
     """
     Obtiene el estado actual del sistema.
     """
-    has_documents = rag_system.qa_chain is not None
+    has_documents = rag_system.vector_store is not None
     
     return StatusResponse(
         status="ready" if has_documents else "waiting_for_documents",
