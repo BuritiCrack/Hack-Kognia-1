@@ -165,20 +165,6 @@ Respuesta esperada: objeto JSON con texto de respuesta, fragmentos fuente y nive
   - Disponibilidad de espacio en disco si usas modelo local HuggingFace
   - Logs en consola (FastAPI / Uvicorn)
 
-**Licencia**
-
-- MIT. Ver `LICENSE` para detalles.
-
 **Autor**
 
-- Proyecto desarrollado para Hack Kognia 1.0 — Autor: AndresFGutierrez
-
----
-
-Si quieres, puedo:
-
-- Añadir ejemplos de requests/responses reales (JSON)
-- Preparar un `docker-compose` para ejecutar backend + FAISS localmente
-- Reducir plantilla para que use embeddings de OpenAI y sea más fácil desplegar en Render
-
-¿Cuál prefieres que haga ahora?
+- Proyecto desarrollado para Hackaton Kognia 1.0
