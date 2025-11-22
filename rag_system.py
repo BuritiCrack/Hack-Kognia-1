@@ -208,8 +208,8 @@ class RAGSystem:
                 content = best_source['content'].strip()
                 content_preview = self._create_smart_preview(content, keywords)
                 
-                relevance_text = f"{int(best_source['keyword_score'])} palabras clave"
-                answer_parts.append(f"**Información más relevante** ({relevance_text}):\n\n{content_preview}\n\n")
+                # Mostrar directamente el contenido sin etiqueta de relevancia
+                answer_parts.append(f"{content_preview}\n\n")
                 
                 # Mencionar si hay más información disponible
                 if len(relevant_sources) > 1:

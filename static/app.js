@@ -241,9 +241,7 @@ function addMessage(text, sender, sources = null, confidence = null) {
                     <div class="source-item">
                         <div class="source-filename">
                             📄 ${source.filename} - Fragmento ${source.chunk + 1}
-                            <span class="source-score">(Similitud: ${(1 - source.score).toFixed(2)}${source.keyword_score ? ` | Palabras clave: ${Math.floor(source.keyword_score)}` : ''})</span>
                         </div>
-                        <div class="source-content">"${truncateText(source.content, 150)}"</div>
                     </div>
                 `).join('')}
                 ${confidence ? `
