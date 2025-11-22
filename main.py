@@ -126,8 +126,6 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             metadatas.append({"filename": filename})
             processed_files.append(filename)
             
-            # Opcional: eliminar archivo después de procesarlo
-            # file_path.unlink()
         
         # Añadir documentos al sistema RAG
         rag_system.add_documents(texts, metadatas)
@@ -153,7 +151,7 @@ async def query_documents(request: QueryRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
     
-    if rag_system.vector_store is None:
+    if rag_system.qa_chain is None:
         raise HTTPException(
             status_code=400,
             detail="No hay documentos cargados. Por favor, cargue documentos primero."
@@ -175,7 +173,7 @@ async def reset_system():
     try:
         rag_system.reset()
         
-        # Limpiar archivos subidos (opcional)
+        # Limpiar archivos subidos
         for file in UPLOAD_DIR.glob("*"):
             if file.is_file():
                 file.unlink()
@@ -194,7 +192,7 @@ async def get_status():
     """
     Obtiene el estado actual del sistema.
     """
-    has_documents = rag_system.vector_store is not None
+    has_documents = rag_system.qa_chain is not None
     
     return StatusResponse(
         status="ready" if has_documents else "waiting_for_documents",

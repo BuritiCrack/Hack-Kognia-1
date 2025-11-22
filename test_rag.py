@@ -1,8 +1,3 @@
-"""
-Script de prueba para verificar el sistema RAG sin interfaz web.
-Útil para testing y debugging.
-"""
-
 import os
 from dotenv import load_dotenv
 from rag_system import RAGSystem, DocumentProcessor
