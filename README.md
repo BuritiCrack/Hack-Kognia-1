@@ -1,244 +1,184 @@
-# ⚖️ Asistente Legal Inteligente - RAG System
+# ⚖️ Hack-Kognia RAG — Asistente Legal Inteligente
 
-Sistema de Recuperación Aumentada por Generación (RAG) para consultas inteligentes sobre documentos legales, desarrollado para Hack Kognia 1.0.
+Una aplicación RAG (Retrieval-Augmented Generation) para responder consultas sobre documentos legales. Este proyecto fue desarrollado como demo para Hack Kognia 1.0 y permite cargar documentos (PDF, DOCX, TXT), indexarlos mediante embeddings y responder preguntas con contexto extraído de los documentos.
 
-## 🎯 Características
+## 👥 Integrantes del Proyecto
 
-- **Carga múltiple de documentos**: Soporta PDF, DOCX y TXT
-- **Procesamiento inteligente**: Divide documentos en fragmentos y crea embeddings vectoriales
-- **Búsqueda semántica**: Utiliza FAISS para búsqueda eficiente de información relevante
-- **Respuestas contextualizadas**: GPT-4o-mini genera respuestas basadas en los documentos
-- **Interfaz tipo chat**: Interfaz web moderna y responsive
-- **Transparencia**: Muestra fuentes y nivel de confianza de cada respuesta
+- 👨‍💻 Andrés Gutiérrez
+- 👩‍💻 Manuela Cardona
+- 👨‍💻 José Buritica
 
-## 🏗️ Arquitectura
+## 🙏 Agradecimientos
 
-### Backend
-- **FastAPI**: API REST de alto rendimiento
-- **LangChain**: Framework para aplicaciones LLM
-- **FAISS**: Base de datos vectorial para búsqueda semántica
-- **OpenAI**: GPT-4o-mini para generación de respuestas
+Muchas gracias a la organización **TalentoTech y Kognia** por el apoyo y la confianza en nosotros durante el desarrollo de este proyecto.
+**Estado**: Proyecto local / demo. No está desplegado en Render debido al uso de un modelo de HuggingFace que requiere almacenamiento grande (se llenaba el disco del servicio) y la cuenta gratuita no fue suficiente para las pruebas.
 
-### Frontend
-- **HTML5/CSS3**: Interfaz moderna y responsive
-- **JavaScript Vanilla**: Sin dependencias, código limpio y eficiente
+**Contenido rápido**
 
-### Procesamiento
-1. **Carga**: Recepción de documentos PDF/DOCX/TXT
-2. **Extracción**: Parsing y extracción de texto
-3. **Segmentación**: División en chunks de ~1000 caracteres
-4. **Vectorización**: Creación de embeddings con OpenAI
-5. **Indexación**: Almacenamiento en FAISS
-6. **Consulta**: Recuperación de fragmentos relevantes
-7. **Generación**: Respuesta contextualizada con GPT-4o-mini
+- **Backend**: FastAPI + LangChain + FAISS
+- **Frontend**: HTML/CSS + JavaScript (vanilla)
+- **Modelos/Embeddings**: HuggingFace (modelo local) / OpenAI embeddings según configuración
 
-## 🚀 Instalación Local
+**Objetivo**: Demostrar un flujo RAG completo: carga de documentos → chunking → embeddings → búsqueda semántica → respuesta contextualizada.
 
-### Requisitos Previos
-- Python 3.9 o superior
-- Cuenta de OpenAI con API key
+**Directorio principal**
 
-### Pasos
+- `backend/` — API y procesamiento RAG (Python, FastAPI)
+- `frontend/` — Interfaz web estática
 
-1. **Clonar el repositorio**
-```bash
+**¿Por qué NO está en Render?**
+Usamos un modelo de HuggingFace que almacena pesos grandes localmente. Al intentar desplegar en Render el almacenamiento se llenó rápidamente y la capa gratuita no cubre el espacio/tiempo de cómputo requerido. Por eso el servicio se mantiene para ejecución local o en entornos con GPU/espacio suficiente.
+
+**Índice**
+
+- **Qué hace**
+- **Tecnologías**
+- **Instalación y ejecución (local, Windows)**
+- **Variables de entorno**
+- **Endpoints principales**
+- **Notas de despliegue y limitaciones**
+- **Contribuir**
+- **Licencia y autoría**
+
+**Qué se hizo (resumen)**
+
+- Implementación de backend en FastAPI que procesa documentos, crea embeddings, guarda vectores en FAISS y expone endpoints para upload, consulta, estado y reinicio.
+- Frontend simple que permite subir archivos y consultar mediante un chat.
+- Pipeline de extracción y chunking de documentos (PDF/DOCX/TXT).
+- Integración con LangChain para orquestar recuperación + generación.
+
+**Características principales**
+
+- Carga de múltiples documentos en una sola sesión
+- Tokenización/segmentación (chunking) configurable
+- Indexado en FAISS (búsqueda semántica rápida)
+- Respuestas con referencias a fragmentos fuente
+
+**Tecnologías y librerías**
+
+- Lenguaje: Python 3.9+
+- Framework: `FastAPI`
+- Orquestador RAG: `langchain`
+- Vector DB: `faiss` (o `faiss-cpu` según instalación)
+- Procesamiento PDF: `pypdf`
+- Procesamiento DOCX: `python-docx`
+- Server: `uvicorn`
+- Frontend: HTML5, CSS3, JavaScript (vanilla)
+
+**Instalación y ejecución (Local — Windows PowerShell)**
+
+1. Clonar repositorio:
+
+```powershell
 git clone https://github.com/AndresFGutierrez/hack-kognia-rag-legal.git
 cd hack-kognia-rag-legal
 ```
 
-2. **Crear entorno virtual**
-```bash
+2. Crear y activar entorno virtual (Windows PowerShell):
+
+```powershell
 python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
+venv\Scripts\Activate
 ```
 
-3. **Instalar dependencias**
-```bash
+3. Instalar dependencias:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-4. **Configurar variables de entorno**
-```bash
-# Copiar archivo de ejemplo
+4. Copiar archivo de ejemplo de variables de entorno y editar:
+
+```powershell
 copy .env.example .env
-
-# Editar .env y agregar tu API key de OpenAI
-OPENAI_API_KEY=tu_api_key_aqui
+# Abrir .env y completar las variables (ver sección siguiente)
 ```
 
-5. **Ejecutar la aplicación**
-```bash
+5. Ejecutar la API (modo desarrollo):
+
+```powershell
+# Opción 1: Ejecutar el script principal
 python main.py
+
+# Opción 2: Con uvicorn (recarga automática)
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-6. **Acceder a la aplicación**
+6. Abrir frontend en el navegador (si ejecutas frontend dev):
+
+```powershell
+cd frontend
+# si hay un script npm para el frontend, usarlo; por ejemplo:
+npm install
+npm run dev
 ```
-http://localhost:8000
-```
 
-## 📦 Despliegue en Producción
+Luego abrir `http://localhost:8000` (o la url que indique el backend/frontend según configuración).
 
-### Render.com (Recomendado)
+**Variables de entorno (ejemplo)**
 
-1. **Crear cuenta en Render.com**
-2. **Conectar repositorio de GitHub**
-3. **Configurar Web Service**:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. **Agregar variables de entorno**:
-   - `OPENAI_API_KEY`: Tu API key de OpenAI
-5. **Deploy**
+- `OPENAI_API_KEY` — (opcional) si usas OpenAI para embeddings o LLM.
+- `HF_MODEL_PATH` — ruta local al modelo HuggingFace (si usas modelo local).
+- `OPENAI_MODEL` — nombre del modelo OpenAI, si aplica.
+- `CHUNK_SIZE` y `CHUNK_OVERLAP` — parámetros de chunking (si están soportados por la app).
 
-### Railway.app
+Edita `.env` según tus necesidades.
 
-1. **Crear cuenta en Railway.app**
-2. **New Project → Deploy from GitHub**
-3. **Agregar variables de entorno**:
-   - `OPENAI_API_KEY`: Tu API key de OpenAI
-4. **Deploy automático**
+**Endpoints principales**
 
-### Vercel (Solo Frontend)
+- `GET /` — Interfaz web principal
+- `GET /api/health` — Estado del servicio
+- `POST /api/upload` — Subir y procesar documentos (multipart/form-data)
+- `POST /api/query` — Preguntar al sistema: `{"question":"..."}`
+- `POST /api/reset` — Limpiar índice y documentos cargados
+- `GET /api/status` — Estado interno y número de documentos cargados
 
-Para frontend estático, puedes usar Vercel y un backend separado.
+Ejemplo de `POST /api/query` (JSON):
 
-## 📚 Uso
-
-### 1. Cargar Documentos
-- Arrastra archivos o haz clic en "Seleccionar Archivos"
-- Formatos: PDF, DOCX, TXT
-- Puedes cargar múltiples documentos
-
-### 2. Realizar Consultas
-- Escribe tu pregunta en lenguaje natural
-- Presiona Enter o haz clic en "Enviar"
-- El sistema buscará en los documentos y generará una respuesta
-
-### 3. Revisar Respuestas
-- Lee la respuesta generada
-- Revisa las fuentes citadas
-- Verifica el nivel de confianza
-
-### 4. Reiniciar Sistema
-- Haz clic en "Reiniciar" para limpiar documentos
-- Carga nuevos documentos para empezar de nuevo
-
-## 🔧 API Endpoints
-
-### GET `/`
-Sirve la interfaz web principal
-
-### GET `/api/health`
-Verifica el estado del sistema
 ```json
-{
-  "status": "healthy",
-  "model": "gpt-4o-mini",
-  "documents_loaded": 3
-}
+{ "question": "¿Qué dice el documento sobre cláusulas de rescisión?" }
 ```
 
-### POST `/api/upload`
-Carga y procesa documentos
-- **Input**: Multipart form data con archivos
-- **Output**: Confirmación y número de documentos cargados
+Respuesta esperada: objeto JSON con texto de respuesta, fragmentos fuente y nivel de confianza.
 
-### POST `/api/query`
-Realiza una consulta
-- **Input**: `{"question": "¿Qué dice sobre...?"}`
-- **Output**: Respuesta con fuentes y confianza
+**Notas sobre despliegue y limitaciones**
 
-### POST `/api/reset`
-Reinicia el sistema
-- **Output**: Confirmación de reinicio
+- El proyecto funciona bien localmente o en servidores con espacio/CPU suficientes. No está desplegado en Render por la siguiente razón:
+  - Usamos un modelo de `HuggingFace` con pesos grandes que se almacenan localmente. Durante intentos de despliegue en Render el almacenamiento se llenó rápidamente y la capa gratuita no fue suficiente para realizar las pruebas. Por ello recomendamos desplegar en infra con disco persistente y/o instancias con GPU (AWS, GCP, Azure, o servidores propios).
+- Para probar de forma económica: usar modelos más pequeños, embeddings externos (OpenAI), o alojar los vectores en un servicio gestionado.
 
-### GET `/api/status`
-Obtiene estado del sistema
-- **Output**: Estado y documentos cargados
+**Sugerencias para producción**
 
-## 🛠️ Tecnologías Utilizadas
+- Usar un servicio gestionado para vectores (Pinecone, Milvus Cloud, etc.) para evitar uso intensivo de disco.
+- Separar almacenamiento de modelos y de la app (NFS, S3, o discos persistentes grandes).
+- Limitar el tamaño máximo de archivos en uploads y controlar el uso de memoria.
 
-| Componente | Tecnología | Versión |
-|------------|-----------|---------|
-| Backend Framework | FastAPI | 0.109.0 |
-| LLM Framework | LangChain | 0.1.4 |
-| Vector Store | FAISS | 1.7.4 |
-| LLM | OpenAI GPT-4o-mini | API |
-| Embeddings | OpenAI text-embedding-3-small | API |
-| PDF Processing | pypdf | 4.0.1 |
-| DOCX Processing | python-docx | 1.1.0 |
-| Server | Uvicorn | 0.27.0 |
+**Contribuir**
 
-## 📝 Configuración Avanzada
+- Fork del repo → crear rama `feature/mi-mejora` → PR con descripción clara y tests si aplica.
 
-### Cambiar Modelo LLM
-Edita `.env`:
-```env
-OPENAI_MODEL=gpt-4  # Más potente pero más costoso
-```
+**Soporte y troubleshooting**
 
-### Ajustar Chunking
-Edita `rag_system.py`:
-```python
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1500,  # Aumentar para chunks más grandes
-    chunk_overlap=300,
-)
-```
+- Si la app no arranca, revisa:
+  - `requirements.txt` instalado correctamente
+  - Variables de entorno en `.env`
+  - Disponibilidad de espacio en disco si usas modelo local HuggingFace
+  - Logs en consola (FastAPI / Uvicorn)
 
-### Cambiar Número de Fuentes
-Edita `rag_system.py`:
-```python
-retriever=self.vector_store.as_retriever(
-    search_kwargs={"k": 6}  # Recuperar más fragmentos
-)
-```
+**Licencia**
 
-## 🔒 Seguridad
+- MIT. Ver `LICENSE` para detalles.
 
-- **API Keys**: Nunca commits tu `.env` al repositorio
-- **CORS**: Configurado para desarrollo, ajustar en producción
-- **Rate Limiting**: Considera implementar para producción
-- **Validación**: Los archivos son validados antes de procesarse
+**Autor**
 
-## 📊 Limitaciones Conocidas
-
-- Máximo tamaño de archivo: ~50MB por limitaciones de memoria
-- Idioma: Optimizado para español, funciona con otros idiomas
-- Costo: Cada consulta consume tokens de OpenAI
-- Persistencia: Los documentos se pierden al reiniciar (sin DB permanente)
-
-## 🤝 Contribuciones
-
-Este es un proyecto para Hack Kognia 1.0. Sugerencias y mejoras son bienvenidas.
-
-## 📄 Licencia
-
-MIT License - Ver archivo LICENSE para más detalles
-
-## 👥 Autor
-
-Desarrollado para Hack Kognia 1.0
-
-## 🙏 Agradecimientos
-
-- Talento Tech por la organización del hackathon
-- OpenAI por las APIs de LLM
-- LangChain por el framework RAG
-- La comunidad open source
-
-## 📞 Soporte
-
-Para problemas o preguntas:
-1. Revisa la documentación
-2. Verifica la configuración de variables de entorno
-3. Consulta los logs de error
-4. Abre un issue en GitHub
+- Proyecto desarrollado para Hack Kognia 1.0 — Autor: AndresFGutierrez
 
 ---
 
-**Hack Kognia 1.0** - Asistente Legal Inteligente RAG
+Si quieres, puedo:
+
+- Añadir ejemplos de requests/responses reales (JSON)
+- Preparar un `docker-compose` para ejecutar backend + FAISS localmente
+- Reducir plantilla para que use embeddings de OpenAI y sea más fácil desplegar en Render
+
+¿Cuál prefieres que haga ahora?
