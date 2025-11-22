@@ -247,6 +247,19 @@ body {
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
+    line-height: 1.6;
+}
+
+.message-assistant .message-bubble p {
+    margin: 0 0 10px 0;
+}
+
+.message-assistant .message-bubble p:last-child {
+    margin-bottom: 0;
+}
+
+.message-assistant .message-bubble strong {
+    color: var(--primary-color);
 }
 
 .message-sources {
@@ -275,6 +288,18 @@ body {
     font-weight: 600;
     color: var(--primary-color);
     margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.source-score {
+    font-size: 0.75rem;
+    font-weight: normal;
+    color: var(--text-secondary);
+    background: var(--bg-color);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .source-content {

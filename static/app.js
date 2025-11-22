@@ -223,14 +223,25 @@ function addMessage(text, sender, sources = null, confidence = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${sender}`;
     
+    // Convertir markdown básico a HTML
+    let formattedText = text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // Bold
+        .replace(/\n\n/g, '</p><p>')  // Párrafos
+        .replace(/\n/g, '<br>');  // Saltos de línea
+    
+    formattedText = `<p>${formattedText}</p>`;
+    
     let sourcesHTML = '';
     if (sources && sources.length > 0) {
         sourcesHTML = `
             <div class="message-sources">
-                <h4>📚 Fuentes consultadas:</h4>
-                ${sources.map(source => `
+                <h4>📚 Fuentes consultadas (${sources.length} fragmentos):</h4>
+                ${sources.slice(0, 3).map((source, index) => `
                     <div class="source-item">
-                        <div class="source-filename">📄 ${source.filename} (fragmento ${source.chunk + 1})</div>
+                        <div class="source-filename">
+                            📄 ${source.filename} - Fragmento ${source.chunk + 1}
+                            <span class="source-score">(Similitud: ${(1 - source.score).toFixed(2)}${source.keyword_score ? ` | Palabras clave: ${Math.floor(source.keyword_score)}` : ''})</span>
+                        </div>
                         <div class="source-content">"${truncateText(source.content, 150)}"</div>
                     </div>
                 `).join('')}
@@ -244,7 +255,7 @@ function addMessage(text, sender, sources = null, confidence = null) {
     }
     
     messageDiv.innerHTML = `
-        <div class="message-bubble">${text}</div>
+        <div class="message-bubble">${formattedText}</div>
         ${sourcesHTML}
     `;
     

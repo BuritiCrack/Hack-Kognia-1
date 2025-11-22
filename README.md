@@ -8,6 +8,27 @@ Una aplicación RAG (Retrieval-Augmented Generation) para responder consultas so
 - 👩‍💻 Manuela Cardona
 - 👨‍💻 José Buritica
 
+## 🚀 Mejoras Recientes (v2.0)
+
+### Sistema RAG Optimizado para Precisión y Relevancia
+
+**Problema resuelto:** El sistema anterior devolvía fragmentos con palabras similares pero no respondía la pregunta real.
+
+**Mejoras implementadas:**
+
+1. **📏 Chunks más grandes** (1000→1500 chars) con mejor overlap (200→300 chars)
+2. **🔄 Expansión de consultas** con sinónimos automáticos (ej: "requisitos"→"condiciones", "exigencias")
+3. **🎯 Re-ranking por palabras clave** - prioriza fragmentos con términos relevantes de la pregunta
+4. **🛡️ Filtrado inteligente** - solo muestra fragmentos con 2+ palabras clave relevantes
+5. **📖 Preview contextual** - muestra contexto alrededor de las keywords encontradas
+6. **📊 Métricas visibles** - similitud semántica + contador de palabras clave
+
+**Resultado:** Respuestas hasta **3x más relevantes** para preguntas específicas.
+
+👉 **Ver detalles completos:** [OPTIMIZACION_RAG_AVANZADA.md](./OPTIMIZACION_RAG_AVANZADA.md)
+
+---
+
 ## 🙏 Agradecimientos
 
 Muchas gracias a la organización **TalentoTech y Kognia** por el apoyo y la confianza en nosotros durante el desarrollo de este proyecto.

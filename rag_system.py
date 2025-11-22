@@ -67,14 +67,41 @@ class RAGSystem:
         
         self.vector_store: Optional[FAISS] = None
         self.documents_loaded = []
+    
+    def _expand_query(self, question: str) -> List[str]:
+        """Expande la consulta con sinónimos y términos relacionados."""
+        queries = [question]
+        
+        # Diccionario de expansiones para términos legales comunes
+        expansions = {
+            'requisitos': ['condiciones', 'requerimientos', 'exigencias', 'debe cumplir'],
+            'obtener': ['conseguir', 'tramitar', 'solicitar', 'adquirir'],
+            'licencia de conducción': ['licencia de conducir', 'pase de conducción', 'permiso de conducir'],
+            'procedimiento': ['proceso', 'trámite', 'pasos', 'cómo hacer'],
+            'obligaciones': ['deberes', 'responsabilidades', 'debe hacer'],
+            'derechos': ['facultades', 'puede hacer', 'tiene derecho'],
+            'sanciones': ['multas', 'penalidades', 'infracciones'],
+            'plazo': ['término', 'tiempo', 'fecha límite', 'vencimiento'],
+        }
+        
+        question_lower = question.lower()
+        for term, synonyms in expansions.items():
+            if term in question_lower:
+                for synonym in synonyms:
+                    expanded = question_lower.replace(term, synonym)
+                    if expanded != question_lower:
+                        queries.append(expanded)
+        
+        return queries[:3]  # Limitar a 3 variaciones
         
     def add_documents(self, texts: List[str], metadatas: List[dict]):
         """Añade documentos al sistema RAG."""
-        # Crear splitter para dividir textos largos
+        # Crear splitter para dividir textos largos con mejor contexto
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=1500,  # Chunks más grandes para mejor contexto
+            chunk_overlap=300,  # Mayor overlap para no perder información entre chunks
             length_function=len,
+            separators=["\n\n", "\n", ". ", " ", ""]  # Priorizar separadores naturales
         )
         
         # Crear documentos
@@ -98,44 +125,192 @@ class RAGSystem:
             self.vector_store.merge_from(new_store)
         
     def query(self, question: str) -> dict:
-        """Realiza una consulta al sistema RAG usando búsqueda por similitud."""
+        """Realiza una consulta al sistema RAG con búsqueda expandida y re-ranking."""
         if self.vector_store is None:
             raise ValueError("No hay documentos cargados en el sistema.")
         
-        # Buscar documentos similares
-        docs_with_scores = self.vector_store.similarity_search_with_score(question, k=4)
+        # Expandir la consulta con variaciones
+        expanded_queries = self._expand_query(question)
         
-        # Procesar fuentes
+        # Buscar con todas las variaciones y combinar resultados
+        all_docs = {}
+        for query in expanded_queries:
+            docs_with_scores = self.vector_store.similarity_search_with_score(query, k=10)
+            for doc, score in docs_with_scores:
+                doc_key = doc.page_content[:100]  # Usar inicio como clave única
+                if doc_key not in all_docs or all_docs[doc_key]['score'] > score:
+                    all_docs[doc_key] = {
+                        'doc': doc,
+                        'score': score
+                    }
+        
+        # Convertir a lista y ordenar por score
+        docs_with_scores = [(item['doc'], item['score']) for item in all_docs.values()]
+        docs_with_scores.sort(key=lambda x: x[1])  # Menor score = más similar
+        
+        # Re-ranking: priorizar chunks que contienen palabras clave de la pregunta
+        keywords = self._extract_keywords(question)
+        reranked_docs = self._rerank_by_keywords(docs_with_scores[:15], keywords)
+        
+        # Procesar fuentes con mejor re-ranking
         sources = []
-        for doc, score in docs_with_scores:
+        for doc, score, keyword_score in reranked_docs:
             sources.append({
                 "content": doc.page_content,
                 "filename": doc.metadata.get("filename", "Desconocido"),
                 "chunk": doc.metadata.get("chunk", 0),
-                "score": float(score)
+                "score": float(score),
+                "keyword_score": keyword_score
             })
         
-        # Crear una respuesta basada en los fragmentos recuperados
-        if sources:
-            answer_parts = ["Basándome en el documento, he encontrado la siguiente información relevante:\n"]
-            for i, source in enumerate(sources[:2], 1):  # Mostrar máximo 2 fragmentos más relevantes
-                answer_parts.append(f"\n{i}. {source['content'][:400]}...")
+        # Filtrar resultados realmente relevantes
+        relevant_sources = [s for s in sources if s['keyword_score'] >= 2]  # Al menos 2 keywords
+        
+        if not relevant_sources and sources:
+            # Si el filtro es muy estricto, usar los mejores por score
+            relevant_sources = sources[:3]
+        
+        # Crear una respuesta más estructurada y precisa
+        if relevant_sources:
+            # Analizar el tipo de pregunta para dar formato adecuado
+            question_lower = question.lower()
+            
+            # Determinar el contexto de la pregunta
+            is_definition = any(word in question_lower for word in ["qué es", "define", "significado", "concepto"])
+            is_requirements = any(word in question_lower for word in ["requisitos", "condiciones", "debe cumplir", "exigencias"])
+            is_list = any(word in question_lower for word in ["cuáles", "cuántos", "lista", "enumera"])
+            is_how = any(word in question_lower for word in ["cómo", "de qué manera", "procedimiento", "proceso"])
+            is_when = any(word in question_lower for word in ["cuándo", "plazo", "fecha", "tiempo"])
+            is_amount = any(word in question_lower for word in ["cuánto", "valor", "precio", "monto", "costo"])
+            
+            # Construir respuesta según el tipo de pregunta
+            answer_parts = []
+            
+            if is_definition:
+                answer_parts.append("📖 **Definición Legal:**\n\n")
+            elif is_requirements:
+                answer_parts.append("📋 **Requisitos según la Ley:**\n\n")
+            elif is_list:
+                answer_parts.append("📋 **Información encontrada:**\n\n")
+            elif is_how:
+                answer_parts.append("⚙️ **Procedimiento Legal:**\n\n")
+            elif is_when:
+                answer_parts.append("📅 **Información sobre Plazos:**\n\n")
+            elif is_amount:
+                answer_parts.append("💰 **Valores/Montos:**\n\n")
+            else:
+                answer_parts.append("📄 **Según el documento legal:**\n\n")
+            
+            # Mostrar los fragmentos más relevantes de forma clara
+            for i, source in enumerate(relevant_sources[:3], 1):
+                content = source['content'].strip()
+                # Resaltar las palabras clave encontradas
+                content_preview = self._create_smart_preview(content, keywords)
+                
+                answer_parts.append(f"**Fragmento {i}** (Relevancia: {source['keyword_score']} términos clave):\n{content_preview}\n\n")
+            
+            # Agregar contexto adicional
+            if len(relevant_sources) > 3:
+                answer_parts.append(f"_Se encontraron {len(relevant_sources)} fragmentos relevantes adicionales._\n")
+            
             answer = "".join(answer_parts)
         else:
-            answer = "No se encontró información relevante en el documento."
+            answer = "❌ **No se encontró información específica** para responder tu pregunta.\n\n"
+            answer += "**Sugerencias:**\n"
+            answer += "- Verifica que el documento contenga información sobre este tema\n"
+            answer += "- Intenta usar términos diferentes (ej: 'requisitos' en vez de 'condiciones')\n"
+            answer += "- Asegúrate de que el documento esté correctamente cargado\n"
         
         return {
             "answer": answer,
-            "sources": sources,
-            "confidence": self._calculate_confidence(sources)
+            "sources": relevant_sources if relevant_sources else sources[:3],
+            "confidence": self._calculate_confidence(relevant_sources if relevant_sources else sources)
         }
     
+    def _extract_keywords(self, question: str) -> List[str]:
+        """Extrae palabras clave importantes de la pregunta."""
+        # Palabras de relleno a ignorar
+        stopwords = {'qué', 'cuál', 'cuáles', 'cómo', 'cuándo', 'dónde', 'quién', 'es', 'son', 'el', 'la', 'los', 'las',
+                    'un', 'una', 'unos', 'unas', 'de', 'del', 'para', 'por', 'con', 'sin', 'sobre', 'según', 'debe',
+                    'puede', 'tiene', 'hacer', 'ser', 'estar', 'en', 'a', 'y', 'o', 'u', 'e'}
+        
+        words = question.lower().split()
+        keywords = [w.strip('¿?.,;:()') for w in words if w.lower() not in stopwords and len(w) > 3]
+        
+        # Agregar bigramas importantes
+        bigrams = []
+        for i in range(len(words) - 1):
+            bigram = f"{words[i]} {words[i+1]}"
+            if 'licencia' in bigram or 'requisito' in bigram or 'conducción' in bigram:
+                bigrams.append(bigram)
+        
+        return keywords + bigrams
+    
+    def _rerank_by_keywords(self, docs_with_scores: List[tuple], keywords: List[str]) -> List[tuple]:
+        """Re-rankea documentos basándose en la presencia de palabras clave."""
+        scored_docs = []
+        
+        for doc, score in docs_with_scores:
+            content_lower = doc.page_content.lower()
+            
+            # Contar keywords presentes
+            keyword_score = sum(1 for kw in keywords if kw.lower() in content_lower)
+            
+            # Bonus por densidad de keywords
+            if keyword_score > 0:
+                keyword_density = keyword_score / len(content_lower.split()) * 1000
+                keyword_score += keyword_density
+            
+            scored_docs.append((doc, score, keyword_score))
+        
+        # Ordenar por keyword_score (descendente) y luego por similarity score (ascendente)
+        scored_docs.sort(key=lambda x: (-x[2], x[1]))
+        
+        return scored_docs
+    
+    def _create_smart_preview(self, content: str, keywords: List[str]) -> str:
+        """Crea un preview inteligente mostrando el contexto alrededor de las keywords."""
+        content_lower = content.lower()
+        
+        # Buscar la primera keyword encontrada
+        best_position = -1
+        for kw in keywords:
+            pos = content_lower.find(kw.lower())
+            if pos != -1:
+                best_position = pos
+                break
+        
+        if best_position == -1:
+            # Si no hay keywords, mostrar desde el inicio
+            return content[:700] + ("..." if len(content) > 700 else "")
+        
+        # Mostrar contexto alrededor de la keyword (350 chars antes y después)
+        start = max(0, best_position - 200)
+        end = min(len(content), best_position + 500)
+        
+        preview = content[start:end]
+        if start > 0:
+            preview = "..." + preview
+        if end < len(content):
+            preview = preview + "..."
+        
+        return preview
+    
     def _calculate_confidence(self, sources: List[dict]) -> str:
-        """Calcula el nivel de confianza basado en las fuentes."""
-        num_sources = len(sources)
-        if num_sources >= 3:
+        """Calcula el nivel de confianza basado en la cantidad y calidad de fuentes."""
+        if not sources:
+            return "Baja"
+        
+        # Calcular confianza basada en scores (FAISS usa distancia L2, menor es mejor)
+        avg_score = sum(s.get('score', 100) for s in sources[:3]) / min(len(sources), 3)
+        
+        # Para embeddings de 384 dimensiones, scores típicos:
+        # < 0.5 = Muy similar (Alta confianza)
+        # 0.5-0.8 = Similar (Media confianza)
+        # > 0.8 = Poco similar (Baja confianza)
+        if avg_score < 0.5 and len(sources) >= 3:
             return "Alta"
-        elif num_sources >= 2:
+        elif avg_score < 0.8 and len(sources) >= 2:
             return "Media"
         else:
             return "Baja"
