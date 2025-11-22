@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Legal RAG - Hack Kognia</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>⚖️ Asistente Legal Inteligente</h1>
+            <p class="subtitle">Sistema RAG para consulta de documentos legales</p>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <div class="status-info">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Esperando documentos...</span>
+            </div>
+            <button class="btn-reset" id="resetBtn" title="Reiniciar sistema">
+                🔄 Reiniciar
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h2>📁 Cargar Documentos</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+                    <p class="upload-hint">Formatos: PDF, DOCX, TXT</p>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" hidden>
+                    <button class="btn-primary" id="selectFilesBtn">Seleccionar Archivos</button>
+                </div>
+                
+                <div class="files-list" id="filesList"></div>
+                
+                <button class="btn-upload" id="uploadBtn" disabled>
+                    ⬆️ Subir y Procesar Documentos
+                </button>
+            </div>
+
+            <!-- Chat Section -->
+            <div class="chat-section">
+                <h2>💬 Consultas</h2>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <p>👋 Bienvenido al Asistente Legal Inteligente</p>
+                        <p>Para comenzar, carga uno o varios documentos legales y luego realiza tus consultas.</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <textarea 
+                        id="questionInput" 
+                        placeholder="Escribe tu pregunta aquí..."
+                        rows="2"
+                        disabled
+                    ></textarea>
+                    <button class="btn-send" id="sendBtn" disabled>
+                        Enviar ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p id="loadingText">Procesando...</p>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

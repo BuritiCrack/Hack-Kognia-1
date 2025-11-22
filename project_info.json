@@ -1,0 +1,107 @@
+{
+  "project_name": "Asistente Legal RAG",
+  "version": "1.0.0",
+  "description": "Sistema RAG para consultas sobre documentos legales",
+  "hackathon": "Hack Kognia 1.0",
+  
+  "technology_stack": {
+    "backend": {
+      "framework": "FastAPI",
+      "version": "0.109.0",
+      "python": "3.9+"
+    },
+    "ai": {
+      "llm_framework": "LangChain",
+      "llm_model": "gpt-4o-mini",
+      "embeddings": "text-embedding-3-small",
+      "vector_store": "FAISS"
+    },
+    "frontend": {
+      "html": "HTML5",
+      "css": "CSS3",
+      "javascript": "Vanilla JS"
+    }
+  },
+  
+  "features": {
+    "document_processing": [
+      "PDF support",
+      "DOCX support",
+      "TXT support",
+      "Multiple file upload",
+      "Automatic text extraction",
+      "Smart chunking"
+    ],
+    "rag_system": [
+      "Semantic search",
+      "Vector embeddings",
+      "Context-aware responses",
+      "Source citation",
+      "Confidence scoring"
+    ],
+    "interface": [
+      "Chat-based UI",
+      "Drag and drop upload",
+      "Real-time processing",
+      "Source visualization",
+      "Responsive design"
+    ]
+  },
+  
+  "api_endpoints": {
+    "GET /": "Serve web interface",
+    "GET /api/health": "Health check",
+    "POST /api/upload": "Upload documents",
+    "POST /api/query": "Query documents",
+    "POST /api/reset": "Reset system",
+    "GET /api/status": "Get system status"
+  },
+  
+  "configuration": {
+    "default_model": "gpt-4o-mini",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "retrieval_k": 4,
+    "max_file_size_mb": 50,
+    "supported_formats": [".pdf", ".docx", ".txt"]
+  },
+  
+  "deployment": {
+    "recommended": "Render.com",
+    "alternatives": ["Railway.app", "Fly.io", "Google Cloud Run"],
+    "required_env_vars": [
+      "OPENAI_API_KEY",
+      "OPENAI_MODEL"
+    ]
+  },
+  
+  "costs": {
+    "hosting": {
+      "render_free": "$0/month",
+      "railway": "$5-10/month",
+      "gcp": "pay-as-you-go"
+    },
+    "openai_api": {
+      "gpt-4o-mini": "~$0.01-0.10 per query",
+      "embeddings": "~$0.0001 per 1k tokens"
+    }
+  },
+  
+  "limitations": {
+    "max_file_size": "50 MB",
+    "max_documents": "Limited by RAM",
+    "concurrent_users": "Depends on hosting plan",
+    "response_time": "3-10 seconds per query"
+  },
+  
+  "future_improvements": [
+    "PostgreSQL for persistent storage",
+    "User authentication",
+    "Multi-language support",
+    "Advanced analytics",
+    "Document comparison",
+    "Export reports",
+    "API rate limiting",
+    "Caching layer"
+  ]
+}
